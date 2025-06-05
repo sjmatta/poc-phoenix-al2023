@@ -1,0 +1,24 @@
+# Remove version line as it's obsolete
+
+services:
+  phoenix:
+    build: .
+    container_name: phoenix-al2023
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+      - "9090:9090"
+    environment:
+      - PHOENIX_WORKING_DIR=/mnt/data
+    volumes:
+      - phoenix_data:/mnt/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6006/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  phoenix_data:
+    driver: local
