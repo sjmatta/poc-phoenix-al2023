@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-basic:
     runs-on: ubuntu-latest
     
     steps:
@@ -106,4 +106,119 @@ jobs:
     - name: Cleanup
       if: always()
       run: |
+        docker compose down -v
+
+  test-llm-integration:
+    runs-on: ubuntu-latest
+    needs: test-basic
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+        
+    - name: Build all LLM services
+      run: |
+        cd examples/llm-service
+        docker compose build
+        
+    - name: Start all LLM services
+      run: |
+        cd examples/llm-service
+        docker compose up -d
+        
+    - name: Wait for services to be ready
+      run: |
+        cd examples/llm-service
+        echo "Waiting for all services to start..."
+        for i in {1..60}; do
+          if curl -s -f http://localhost:6006 > /dev/null && \
+             curl -s -f http://localhost:8080/health > /dev/null && \
+             curl -s -f http://localhost:8000/health > /dev/null && \
+             curl -s -f http://localhost:8001/health > /dev/null; then
+            echo "All services are ready!"
+            break
+          fi
+          echo "Waiting for services... ($i/60)"
+          sleep 5
+        done
+        
+    - name: Install test dependencies
+      run: |
+        cd examples/llm-service
+        pip install -r requirements.txt
+        
+    - name: Run API tests
+      run: |
+        cd examples/llm-service
+        python test_api.py
+        
+    - name: Test Q&A functionality
+      run: |
+        response=$(curl -s -X POST http://localhost:8080/api/v1/ask \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer demo-token" \
+          -d '{"question": "What is artificial intelligence?", "context_limit": 3}')
+        
+        echo "API Response: $response"
+        
+        # Check if response contains expected fields
+        if echo "$response" | grep -q '"answer"' && echo "$response" | grep -q '"confidence"'; then
+          echo "✅ Q&A functionality working"
+        else
+          echo "❌ Q&A functionality failed"
+          exit 1
+        fi
+        
+    - name: Test vector search
+      run: |
+        response=$(curl -s -X POST http://localhost:8001/search \
+          -H "Content-Type: application/json" \
+          -d '{"query": "machine learning", "limit": 3}')
+        
+        echo "Vector Search Response: $response"
+        
+        # Check if response is valid JSON array
+        if echo "$response" | python -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+          echo "✅ Vector search working"
+        else
+          echo "❌ Vector search failed"
+          exit 1
+        fi
+        
+    - name: Verify Phoenix traces
+      run: |
+        sleep 10
+        query='{"query":"query { projects { edges { node { name traceCount } } } }"}'
+        response=$(curl -s -H "Content-Type: application/json" -d "$query" http://localhost:6006/graphql)
+        echo "Phoenix GraphQL Response: $response"
+        
+        trace_count=$(echo "$response" | python -c "import sys, json; data = json.load(sys.stdin); print(data['data']['projects']['edges'][0]['node']['traceCount']) if 'data' in data and data['data']['projects']['edges'] else print(0)" 2>/dev/null || echo "0")
+        
+        if [ "$trace_count" -gt 0 ]; then
+          echo "✅ Found $trace_count traces in Phoenix from LLM services"
+        else
+          echo "❌ No traces found in Phoenix from LLM services"
+          echo "GraphQL response: $response"
+          exit 1
+        fi
+        
+    - name: Show service logs on failure
+      if: failure()
+      run: |
+        cd examples/llm-service
+        echo "=== Service Logs ==="
+        docker compose logs
+        
+    - name: Cleanup LLM services
+      if: always()
+      run: |
+        cd examples/llm-service
         docker compose down -v
