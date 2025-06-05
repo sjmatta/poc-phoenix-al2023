@@ -1,5 +1,7 @@
 # Arize Phoenix on Amazon Linux 2023
 
+![Test Status](https://github.com/sjmatta/poc-phoenix-al2023/actions/workflows/test.yml/badge.svg)
+
 A Docker container for [Arize Phoenix](https://phoenix.arize.com/) built on Amazon Linux 2023.
 
 Phoenix is an open-source AI observability platform for LLM applications.
