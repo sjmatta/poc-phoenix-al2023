@@ -1,0 +1,109 @@
+name: Test Phoenix Container
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+        
+    - name: Build Phoenix container
+      run: |
+        docker compose build
+        
+    - name: Start Phoenix container
+      run: |
+        docker compose up -d
+        
+    - name: Wait for Phoenix to be ready
+      run: |
+        echo "Waiting for Phoenix to start..."
+        for i in {1..30}; do
+          if curl -s -f http://localhost:6006 > /dev/null; then
+            echo "Phoenix is ready!"
+            break
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 5
+        done
+        
+    - name: Verify container is Amazon Linux 2023
+      run: |
+        os_info=$(docker exec phoenix-al2023 cat /etc/os-release | grep "Amazon Linux")
+        echo "Container OS: $os_info"
+        if [[ "$os_info" == *"Amazon Linux"* ]]; then
+          echo "✅ Confirmed Amazon Linux base image"
+        else
+          echo "❌ Expected Amazon Linux, got: $os_info"
+          exit 1
+        fi
+        
+    - name: Verify Python 3.11
+      run: |
+        python_version=$(docker exec phoenix-al2023 python3 --version)
+        echo "Python version: $python_version"
+        if [[ "$python_version" == *"Python 3.11"* ]]; then
+          echo "✅ Confirmed Python 3.11"
+        else
+          echo "❌ Expected Python 3.11, got: $python_version"
+          exit 1
+        fi
+        
+    - name: Test Phoenix web interface
+      run: |
+        response=$(curl -s -w "%{http_code}" -o /dev/null http://localhost:6006)
+        if [ "$response" = "200" ]; then
+          echo "✅ Phoenix web interface is accessible"
+        else
+          echo "❌ Phoenix web interface returned HTTP $response"
+          exit 1
+        fi
+        
+    - name: Install OpenTelemetry dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Send test telemetry
+      run: |
+        python send_telemetry.py
+        
+    - name: Verify telemetry processing
+      run: |
+        sleep 5
+        query='{"query":"query { projects { edges { node { name traceCount } } } }"}'
+        response=$(curl -s -H "Content-Type: application/json" -d "$query" http://localhost:6006/graphql)
+        trace_count=$(echo "$response" | python -c "import sys, json; data = json.load(sys.stdin); print(data['data']['projects']['edges'][0]['node']['traceCount']) if 'data' in data else print(0)")
+        
+        if [ "$trace_count" -gt 0 ]; then
+          echo "✅ Found $trace_count traces in Phoenix"
+        else
+          echo "❌ No traces found in Phoenix"
+          echo "GraphQL response: $response"
+          exit 1
+        fi
+        
+    - name: Show container logs on failure
+      if: failure()
+      run: |
+        echo "=== Container Logs ==="
+        docker compose logs
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose down -v
