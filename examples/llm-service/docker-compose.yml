@@ -1,0 +1,104 @@
+services:
+  # Phoenix Observability Platform (using our AL2023 container)
+  phoenix:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: phoenix-observability
+    ports:
+      - "6006:6006"  # Phoenix UI
+      - "4317:4317"  # OTLP gRPC
+      - "9090:9090"  # Prometheus (optional)
+    environment:
+      - PHOENIX_WORKING_DIR=/mnt/data
+    volumes:
+      - phoenix_data:/mnt/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6006/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - llm-network
+
+  # Vector Store Service
+  vector-store:
+    build:
+      context: .
+      dockerfile: Dockerfile.vector-store
+    container_name: vector-store-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PHOENIX_ENDPOINT=http://phoenix:6006/v1/traces
+    depends_on:
+      phoenix:
+        condition: service_healthy
+    networks:
+      - llm-network
+
+  # LLM Service
+  llm-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.llm-service
+    container_name: llm-qa-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PHOENIX_ENDPOINT=http://phoenix:6006/v1/traces
+      - VECTOR_STORE_URL=http://vector-store:8001
+    depends_on:
+      - phoenix
+      - vector-store
+    networks:
+      - llm-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PHOENIX_ENDPOINT=http://phoenix:6006/v1/traces
+      - LLM_SERVICE_URL=http://llm-service:8000
+      - VECTOR_STORE_URL=http://vector-store:8001
+    depends_on:
+      - phoenix
+      - llm-service
+      - vector-store
+    networks:
+      - llm-network
+
+  # Load Generator (for demo purposes)
+  load-generator:
+    image: python:3.11-slim
+    container_name: load-generator
+    working_dir: /app
+    volumes:
+      - ./load_test.py:/app/load_test.py
+      - ./requirements.txt:/app/requirements.txt
+    command: >
+      sh -c "
+        pip install -r requirements.txt &&
+        sleep 60 &&
+        python load_test.py
+      "
+    depends_on:
+      - api-gateway
+    networks:
+      - llm-network
+    profiles:
+      - load-test
+
+volumes:
+  phoenix_data:
+    driver: local
+
+networks:
+  llm-network:
+    driver: bridge
