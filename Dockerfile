@@ -25,7 +25,7 @@ RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
     alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3.11 1
 
 # Install Phoenix and dependencies as root
-RUN pip3 install --no-cache-dir "arize-phoenix[container,pg]"
+RUN pip3 install --no-cache-dir "arize-phoenix[container,pg]==10.9.1"
 
 # Create working directory
 RUN mkdir -p /mnt/data && chown -R nonroot:nonroot /mnt/data
