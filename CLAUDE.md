@@ -69,8 +69,8 @@ pip3 install -r requirements.txt
 The repository has two main components:
 
 1. **Main Phoenix Container**: A dockerized Phoenix instance on Amazon Linux 2023
-   - Base image: `amazonlinux:2023`
-   - Python 3.11 with Arize Phoenix
+   - Base image: `amazonlinux:2023` (version 2023.7.20250331)
+   - Python 3.13 with Arize Phoenix 12.7.0+
    - PostgreSQL support enabled
    - Ports: 6006 (UI), 4317 (gRPC), 9090 (Prometheus)
 

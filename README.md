@@ -34,9 +34,9 @@ docker-compose down
 
 ## What's Included
 
-- **Amazon Linux 2023** base image
-- **Python 3.11** 
-- **Arize Phoenix** with PostgreSQL support
+- **Amazon Linux 2023** base image (latest: 2023.7.20250331)
+- **Python 3.13** (supported until June 2029)
+- **Arize Phoenix 12.7.0+** with PostgreSQL support
 - **Persistent storage** with Docker volumes
 - **All ports exposed**: 6006 (UI), 4317 (gRPC), 9090 (Prometheus)
 
@@ -62,8 +62,8 @@ docker exec phoenix-al2023 cat /etc/os-release
 This implementation has been thoroughly tested to ensure full compatibility with Amazon Linux 2023. All critical functionality works correctly despite potential differences from other Linux distributions.
 
 ### Platform Verification
-- ✅ **Operating System**: Confirmed running Amazon Linux 2023.7.20250512
-- ✅ **Python Environment**: Python 3.11.12 with proper alternatives configuration
+- ✅ **Operating System**: Confirmed running Amazon Linux 2023.7.20250331 (latest)
+- ✅ **Python Environment**: Python 3.13.x with proper alternatives configuration
 - ✅ **Package Management**: dnf-based package installation during build
 - ✅ **User Security**: Non-root user (uid=65532) with proper permissions
 

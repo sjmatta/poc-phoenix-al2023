@@ -76,7 +76,7 @@ services:
 
   # Load Generator (for demo purposes)
   load-generator:
-    image: python:3.11-slim
+    image: python:3.13-slim
     container_name: load-generator
     working_dir: /app
     volumes:
