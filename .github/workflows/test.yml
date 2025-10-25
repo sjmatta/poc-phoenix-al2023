@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -53,14 +53,14 @@ jobs:
           exit 1
         fi
         
-    - name: Verify Python 3.11
+    - name: Verify Python 3.13
       run: |
         python_version=$(docker exec phoenix-al2023 python3 --version)
         echo "Python version: $python_version"
-        if [[ "$python_version" == *"Python 3.11"* ]]; then
-          echo "✅ Confirmed Python 3.11"
+        if [[ "$python_version" == *"Python 3.13"* ]]; then
+          echo "✅ Confirmed Python 3.13"
         else
-          echo "❌ Expected Python 3.11, got: $python_version"
+          echo "❌ Expected Python 3.13, got: $python_version"
           exit 1
         fi
         
@@ -119,7 +119,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
