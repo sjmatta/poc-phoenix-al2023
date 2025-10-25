@@ -5,5 +5,6 @@ pydantic==2.11.5
 opentelemetry-api==1.38.0
 opentelemetry-sdk==1.38.0
 opentelemetry-exporter-otlp==1.38.0
-opentelemetry-instrumentation-fastapi==0.55b0
-opentelemetry-instrumentation-httpx==0.55b0
+opentelemetry-instrumentation==0.59b0
+opentelemetry-instrumentation-fastapi==0.59b0
+opentelemetry-instrumentation-httpx==0.59b0
