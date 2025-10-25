@@ -1,12 +1,12 @@
-# Amazon Linux 2023 base image
+# Amazon Linux 2023 base image (latest: 2023.7.20250331)
 FROM amazonlinux:2023
 
-# Install Python 3.11 and required system packages
+# Install Python 3.13 and required system packages
 RUN dnf update -y && \
     dnf install -y --allowerasing \
-    python3.11 \
-    python3.11-pip \
-    python3.11-devel \
+    python3.13 \
+    python3.13-pip \
+    python3.13-devel \
     gcc \
     gcc-c++ \
     make \
@@ -20,12 +20,12 @@ RUN dnf update -y && \
 # Create a non-root user
 RUN useradd -m -u 65532 nonroot
 
-# Set Python 3.11 as default
-RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
-    alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3.11 1
+# Set Python 3.13 as default
+RUN alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 && \
+    alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3.13 1
 
-# Install Phoenix and dependencies as root
-RUN pip3 install --no-cache-dir "arize-phoenix[container,pg]==10.9.1"
+# Install Phoenix and dependencies as root (latest version)
+RUN pip3 install --no-cache-dir "arize-phoenix[container,pg]>=12.7.0"
 
 # Create working directory
 RUN mkdir -p /mnt/data && chown -R nonroot:nonroot /mnt/data
