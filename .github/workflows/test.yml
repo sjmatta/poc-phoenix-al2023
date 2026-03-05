@@ -20,7 +20,7 @@ jobs:
         python-version: '3.14'
         
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
         
     - name: Build Phoenix container
       run: |
@@ -122,7 +122,7 @@ jobs:
         python-version: '3.14'
         
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
         
     - name: Build all LLM services
       run: |
